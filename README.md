@@ -56,8 +56,11 @@ Exit screen: `Ctrl+A` then `K` then `Y`
 ## Orin Setup
 
 ```bash
-pip install smbus2
-python orin/client.py
+cd orin
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python client.py
 ```
 
 ## I2C Register Map
