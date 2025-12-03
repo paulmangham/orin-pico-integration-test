@@ -19,6 +19,9 @@
 #include "hardware/pwm.h"
 #include "pico/i2c_slave.h"
 
+// LED
+#define LED_PIN 25
+
 // I2C Configuration
 #define I2C_SLAVE_ADDRESS 0x42
 #define I2C_BAUDRATE      100000  // 100 kHz
@@ -150,6 +153,18 @@ static void setup_i2c_slave(void) {
 }
 
 int main(void) {
+    // Initialize LED first for immediate visual feedback
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    // Rapid blink to show we're starting
+    for (int i = 0; i < 6; i++) {
+        gpio_put(LED_PIN, 1);
+        sleep_ms(100);
+        gpio_put(LED_PIN, 0);
+        sleep_ms(100);
+    }
+
     stdio_init_all();
 
     // Wait for USB serial (optional, for debugging)
@@ -164,9 +179,13 @@ int main(void) {
 
     printf("Ready.\n");
 
+    // LED on solid = ready
+    gpio_put(LED_PIN, 1);
+
     // Track previous values to detect changes
     uint8_t prev_steering = context.regs[REG_STEERING];
     uint8_t prev_power = context.regs[REG_POWER];
+    uint32_t loop_count = 0;
 
     while (true) {
         // Check for register changes and apply them
@@ -181,6 +200,14 @@ int main(void) {
         if (power != prev_power) {
             apply_power(power);
             prev_power = power;
+        }
+
+        // Heartbeat blink every ~2 seconds
+        loop_count++;
+        if (loop_count % 200 == 0) {
+            gpio_put(LED_PIN, 0);
+            sleep_ms(50);
+            gpio_put(LED_PIN, 1);
         }
 
         sleep_ms(10);
