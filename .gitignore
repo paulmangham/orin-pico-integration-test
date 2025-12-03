@@ -1,0 +1,28 @@
+# Build directories
+pico/build/
+pico/_deps/
+pico/CMakeFiles/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Compiled files
+*.o
+*.elf
+*.bin
+*.hex
+*.uf2
+*.map
+*.dis
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
