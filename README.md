@@ -4,20 +4,50 @@ PoC for sending steering and power commands from an NVIDIA Orin to a Raspberry P
 
 ## Hardware Setup
 
-### Wiring
+### Orin Nano Pinout (40-pin header)
 
-| Orin | Pico |
-|------|------|
-| SDA | GP0 |
-| SCL | GP1 |
-| GND | GND |
-| USB-A | USB (power) |
+| Pin | Function |
+|-----|----------|
+| 3 | SDA (I2C Bus 7) |
+| 5 | SCL (I2C Bus 7) |
+| 6 | GND |
+
+### Pico Pinout
+
+| GPIO | Pin | Function |
+|------|-----|----------|
+| GP0 | 1 | SDA (I2C) |
+| GP1 | 2 | SCL (I2C) |
+| GND | 3 | Ground |
+| GP2 | 4 | Steering servo PWM |
+
+### Wiring Summary
+
+| Orin (40-pin) | Pico | Notes |
+|---------------|------|-------|
+| Pin 3 (SDA) | GP0 (Pin 1) | I2C data |
+| Pin 5 (SCL) | GP1 (Pin 2) | I2C clock |
+| Pin 6 (GND) | GND (Pin 3) | Common ground |
+| USB-A | USB | Power to Pico |
+
+### Servo Connections
+
+| Servo Wire | Connection |
+|------------|------------|
+| Signal | Pico GP2 (Pin 4) |
+| Power | External 5-6V supply |
+| Ground | Common ground with Pico |
 
 ### Power
 
 - Pico: Powered via USB from Orin
 - Orin: USB-C PD from battery bank
-- Motors: 7.4V 2S LiPo (separate)
+- Servos/ESC: 7.4V 2S LiPo (separate)
+
+### Steering Servo Calibration
+
+- Center: 1470µs
+- Range: ±200µs (1270-1670µs)
 
 ## Building the Pico Firmware
 

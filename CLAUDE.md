@@ -8,18 +8,25 @@ PoC for sending steering and power commands from an NVIDIA Orin to a Raspberry P
 
 ## Hardware Setup
 
-- **NVIDIA Orin**: I2C master, runs Python client
+- **NVIDIA Orin Nano**: I2C master (bus 7), runs Python client
 - **Raspberry Pi Pico**: I2C slave (address `0x42`), runs C firmware using Pico SDK
 - **Power**: Pico powered via USB from Orin; Orin powered via USB-C PD from battery bank
 - **Drive system**: 7.4V 2S LiPo (separate from Orin power)
 
-### I2C Wiring
+### Pinout
 
-| Orin | Pico |
-|------|------|
-| SDA | GP0 |
-| SCL | GP1 |
-| GND | GND |
+| Orin Nano (40-pin) | Pico | Function |
+|--------------------|------|----------|
+| Pin 3 | GP0 (Pin 1) | SDA (I2C Bus 7) |
+| Pin 5 | GP1 (Pin 2) | SCL (I2C Bus 7) |
+| Pin 6 | GND (Pin 3) | Ground |
+| USB-A | USB | Power |
+
+### Servo Output
+
+| Pico GPIO | Function | Calibration |
+|-----------|----------|-------------|
+| GP2 (Pin 4) | Steering servo | 1470µs center, ±200µs |
 
 ## I2C Register Map
 
@@ -67,5 +74,6 @@ python orin/client.py
 
 ## TODO
 
-- Add actual servo/motor PWM control in Pico firmware
+- Add motor/ESC PWM control
 - Add error handling and reconnection logic
+- Add safety timeout (stop if no commands received)
