@@ -22,6 +22,17 @@
 // LED
 #define LED_PIN 25
 
+// Steering Servo PWM
+#define STEERING_PIN 2
+#define STEERING_CENTER_US 1470
+#define STEERING_OFFSET_US 200
+#define PWM_FREQ_HZ 50
+#define PWM_WRAP 20000  // 20ms period, 1us resolution
+
+// PWM slice for steering
+static uint steering_slice;
+static uint steering_channel;
+
 // I2C Configuration
 #define I2C_SLAVE_ADDRESS 0x42
 #define I2C_BAUDRATE      100000  // 100 kHz
@@ -101,12 +112,16 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
  * @param value 0-255, where 128 is center
  */
 static void apply_steering(uint8_t value) {
-    // Convert 0-255 to servo pulse width
-    // Typical servo: 1000-2000us pulse, 128 = 1500us (center)
-    // TODO: Implement actual PWM output to servo
+    // Convert 0-255 to pulse width in microseconds
+    // value 0   -> 1270us (full left)
+    // value 128 -> 1470us (center)
+    // value 255 -> 1670us (full right)
+    int pulse_us = STEERING_CENTER_US + ((int)value - 128) * STEERING_OFFSET_US / 128;
 
-    int angle = (int)value - 128;  // -128 to +127
-    printf("Steering: %d (raw: %d)\n", angle, value);
+    // Set PWM level (1 count = 1us with our configuration)
+    pwm_set_chan_level(steering_slice, steering_channel, pulse_us);
+
+    printf("Steering: %d (raw: %d, pulse: %dus)\n", (int)value - 128, value, pulse_us);
 }
 
 /**
@@ -156,6 +171,31 @@ static void setup_i2c_slave(void) {
     i2c_slave_init(i2c0, I2C_SLAVE_ADDRESS, &i2c_slave_handler);
 }
 
+/**
+ * Setup steering servo PWM
+ */
+static void setup_steering_pwm(void) {
+    // Configure GPIO for PWM
+    gpio_set_function(STEERING_PIN, GPIO_FUNC_PWM);
+
+    // Get PWM slice and channel for this GPIO
+    steering_slice = pwm_gpio_to_slice_num(STEERING_PIN);
+    steering_channel = pwm_gpio_to_channel(STEERING_PIN);
+
+    // Configure PWM for 50Hz (20ms period)
+    // System clock is 125MHz
+    // Divider 125 gives 1MHz (1us per tick)
+    // Wrap 20000 gives 20ms period (50Hz)
+    pwm_set_clkdiv(steering_slice, 125.0f);
+    pwm_set_wrap(steering_slice, PWM_WRAP - 1);
+
+    // Set initial position to center
+    pwm_set_chan_level(steering_slice, steering_channel, STEERING_CENTER_US);
+
+    // Enable PWM
+    pwm_set_enabled(steering_slice, true);
+}
+
 int main(void) {
     // Initialize LED first for immediate visual feedback
     gpio_init(LED_PIN);
@@ -177,9 +217,11 @@ int main(void) {
     printf("RC Car I2C Slave Controller\n");
     printf("I2C Address: 0x%02X\n", I2C_SLAVE_ADDRESS);
     printf("SDA: GP%d, SCL: GP%d\n", I2C_SLAVE_SDA_PIN, I2C_SLAVE_SCL_PIN);
+    printf("Steering PWM: GP%d\n", STEERING_PIN);
 
     init_registers();
     setup_i2c_slave();
+    setup_steering_pwm();
 
     printf("Ready.\n");
 
