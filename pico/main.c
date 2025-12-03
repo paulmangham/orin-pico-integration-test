@@ -42,6 +42,9 @@ static struct {
     bool reg_address_written;
 } context;
 
+// I2C activity flag (set in interrupt, cleared in main loop)
+static volatile bool i2c_activity = false;
+
 // Read-only register mask (1 = read-only)
 static const uint8_t read_only_mask[REG_COUNT] = {
     [REG_STATUS]   = 1,
@@ -84,6 +87,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
 
         case I2C_SLAVE_FINISH:  // Transaction complete
             context.reg_address_written = false;
+            i2c_activity = true;
             break;
 
         default:
@@ -179,13 +183,12 @@ int main(void) {
 
     printf("Ready.\n");
 
-    // LED on solid = ready
-    gpio_put(LED_PIN, 1);
+    // LED off = idle, blinks on I2C activity
+    gpio_put(LED_PIN, 0);
 
     // Track previous values to detect changes
     uint8_t prev_steering = context.regs[REG_STEERING];
     uint8_t prev_power = context.regs[REG_POWER];
-    uint32_t loop_count = 0;
 
     while (true) {
         // Check for register changes and apply them
@@ -202,12 +205,12 @@ int main(void) {
             prev_power = power;
         }
 
-        // Heartbeat blink every ~2 seconds
-        loop_count++;
-        if (loop_count % 200 == 0) {
-            gpio_put(LED_PIN, 0);
-            sleep_ms(50);
+        // Blink LED on I2C activity
+        if (i2c_activity) {
+            i2c_activity = false;
             gpio_put(LED_PIN, 1);
+            sleep_ms(20);
+            gpio_put(LED_PIN, 0);
         }
 
         sleep_ms(10);
