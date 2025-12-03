@@ -8,7 +8,7 @@ import smbus2
 import time
 
 # I2C Configuration
-I2C_BUS = 1  # /dev/i2c-1 on Jetson Orin
+I2C_BUS = 7  # /dev/i2c-7 on Jetson Orin Nano (pins 3/5)
 PICO_ADDR = 0x42
 
 # Register addresses
