@@ -113,10 +113,10 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event) {
  */
 static void apply_steering(uint8_t value) {
     // Convert 0-255 to pulse width in microseconds
-    // value 0   -> 1270us (full left)
+    // value 0   -> 1670us (full left)
     // value 128 -> 1470us (center)
-    // value 255 -> 1670us (full right)
-    int pulse_us = STEERING_CENTER_US + ((int)value - 128) * STEERING_OFFSET_US / 128;
+    // value 255 -> 1270us (full right)
+    int pulse_us = STEERING_CENTER_US - ((int)value - 128) * STEERING_OFFSET_US / 128;
 
     // Set PWM level (1 count = 1us with our configuration)
     pwm_set_chan_level(steering_slice, steering_channel, pulse_us);
