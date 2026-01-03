@@ -93,6 +93,30 @@ pip install -r requirements.txt
 python client.py
 ```
 
+### Interactive Mode (Oscilloscope Debugging)
+
+Use `-i` flag to step through I2C transactions one at a time:
+
+```bash
+python client.py -i
+```
+
+This pauses before each I2C transaction, showing what will be sent:
+
+```
+[Press Enter] Read WHO_AM_I (reg 0x0F) -> expect 0x42
+[Press Enter] Write STEERING (reg 0x00) = 64 (0x40)
+```
+
+Useful for capturing individual transactions on an oscilloscope:
+
+1. Set oscilloscope to single trigger mode (falling edge on SCL)
+2. Arm the trigger
+3. Press Enter to send the transaction
+4. Analyze the captured waveform
+
+Probe GP0 (SDA) and GP1 (SCL) on the Pico, with ground on Pin 3.
+
 ## I2C Register Map
 
 | Register | Address | R/W | Description |

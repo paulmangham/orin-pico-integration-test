@@ -4,8 +4,22 @@ Orin I2C Client for RC Car Control
 Communicates with Raspberry Pi Pico over I2C to control steering and power.
 """
 
+import argparse
+import sys
 import smbus2
 import time
+
+# Interactive mode flag
+interactive_mode = False
+
+
+def wait_for_key(description):
+    """Wait for keypress before executing an I2C transaction."""
+    if interactive_mode:
+        sys.stdout.write(f"[Press Enter] {description}")
+        sys.stdout.flush()
+        sys.stdin.readline()
+        print()  # newline after Enter pressed
 
 # I2C Configuration
 I2C_BUS = 7  # /dev/i2c-7 on Jetson Orin Nano (pins 3/5)
@@ -39,6 +53,7 @@ class PicoController:
             bool: True if device responds with correct ID
         """
         try:
+            wait_for_key("Read WHO_AM_I (reg 0x0F) -> expect 0x42")
             who = self.bus.read_byte_data(self.addr, REG_WHO_AM_I)
             return who == EXPECTED_WHO_AM_I
         except OSError:
@@ -50,6 +65,7 @@ class PicoController:
         Returns:
             int: Status byte
         """
+        wait_for_key("Read STATUS (reg 0x02)")
         return self.bus.read_byte_data(self.addr, REG_STATUS)
 
     def set_steering(self, value):
@@ -59,6 +75,7 @@ class PicoController:
             value: 0-255, where 128 is center, 0 is full left, 255 is full right
         """
         value = max(0, min(255, int(value)))
+        wait_for_key(f"Write STEERING (reg 0x00) = {value} (0x{value:02X})")
         self.bus.write_byte_data(self.addr, REG_STEERING, value)
 
     def get_steering(self):
@@ -67,6 +84,7 @@ class PicoController:
         Returns:
             int: Current steering value (0-255)
         """
+        wait_for_key("Read STEERING (reg 0x00)")
         return self.bus.read_byte_data(self.addr, REG_STEERING)
 
     def set_power(self, value):
@@ -76,6 +94,7 @@ class PicoController:
             value: 0-255, where 128 is stop, <128 is reverse, >128 is forward
         """
         value = max(0, min(255, int(value)))
+        wait_for_key(f"Write POWER (reg 0x01) = {value} (0x{value:02X})")
         self.bus.write_byte_data(self.addr, REG_POWER, value)
 
     def get_power(self):
@@ -84,6 +103,7 @@ class PicoController:
         Returns:
             int: Current power value (0-255)
         """
+        wait_for_key("Read POWER (reg 0x01)")
         return self.bus.read_byte_data(self.addr, REG_POWER)
 
     def stop(self):
@@ -104,6 +124,22 @@ class PicoController:
 
 def main():
     """Demo/test routine."""
+    global interactive_mode
+
+    parser = argparse.ArgumentParser(description="RC Car I2C Client")
+    parser.add_argument("-i", "--interactive", action="store_true",
+                        help="Interactive mode: press Enter before each I2C transaction")
+    args = parser.parse_args()
+
+    interactive_mode = args.interactive
+
+    if interactive_mode:
+        if not sys.stdin.isatty():
+            print("ERROR: Interactive mode requires a terminal (stdin is not a tty)")
+            return
+        print("Interactive mode enabled - press Enter to execute each I2C transaction")
+        print("Set oscilloscope to single trigger mode, then press Enter\n")
+
     print("Initializing Pico Controller...")
     controller = PicoController()
 
@@ -155,8 +191,12 @@ def main():
     except KeyboardInterrupt:
         print("\nInterrupted!")
     finally:
+        if interactive_mode:
+            print("\n[Cleanup] Sending safety stop commands (finally block)...")
         controller.stop()
         controller.close()
+        if interactive_mode:
+            print("[Cleanup] Done.")
 
 
 if __name__ == "__main__":
